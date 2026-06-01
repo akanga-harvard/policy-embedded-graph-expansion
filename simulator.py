@@ -208,7 +208,7 @@ if __name__ == '__main__':
 	tsv_file2 = "data/22140-0002-Data.tsv"
 	tsv_file3 = "data/22140-0003-Data.tsv"
 	pickle_filename = "data/ICPSR_22140.pkl"
-	experiment = 2
+	experiment = 1
 	
 	# Initialize settings. k, d, and aggregation apply only to PEGE + DDB (Ours)
 	num_splits = 5
@@ -226,7 +226,7 @@ if __name__ == '__main__':
 	all_results = []
 
 	# Run experiments
-	for s in range(5, num_splits):
+	for s in range(0, num_splits):
 		print(f'Split {s}')
 
 		# Initialize simulator
@@ -262,12 +262,12 @@ if __name__ == '__main__':
 	
 	# Save results
 	file_path = f"results/results{experiment}.pkl"
-	# with open(file_path, "wb") as file:
-	# 	pickle.dump(all_results, file)
+	with open(file_path, "wb") as file:
+		pickle.dump(all_results, file)
 
 	# Load results
-	with open(file_path, 'rb') as file:
-		all_results = pickle.load(file)
+	# with open(file_path, 'rb') as file:
+	# 	all_results = pickle.load(file)
 
 	# Check to make sure results are in the right format
 	num_policies = len(policies)
