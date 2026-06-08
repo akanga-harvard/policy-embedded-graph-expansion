@@ -321,7 +321,8 @@ if __name__ == '__main__':
 			policy_performances_discounted[policies[p]].append(f_discounted(x_new))
 			policy_performances_undiscounted[policies[p]].append(f_undiscounted(x_new))
 
-	mpl.rcParams['font.size'] = 19
+	mpl.rcParams['font.size'] = 27.5
+	policy_map = {'Random': 'R', 'Greedy Classifier': 'GC', 'Greedy Neighbor': 'GN', 'Fully Observable Gittins': 'FOG', 'PEGE + DDB (Ours)': 'PEGE+DDB', 'PEGE + DDB (Full Theta)': 'PEGE+DDB\n(Full Theta)'}
 
 	# Plot weighted algorithm means with split-level standard errors
 	for policy in policies:
@@ -335,7 +336,7 @@ if __name__ == '__main__':
 		for budget_fraction in [0.10, 0.25, 0.50, 0.75]:
 			budget_idx = int(round(budget_fraction * (len(x_new) - 1)))
 			print(f'{int(100*budget_fraction)} percent budget: {policy_performances_discounted[policy][budget_idx]} discounted, {policy_performances_undiscounted[policy][budget_idx]} undiscounted')
-		line = plt.plot(x_new, policy_performances_discounted[policy], label = policy, linewidth = 1.75)[0]
+		line = plt.plot(x_new, policy_performances_discounted[policy], label = policy_map[policy] if policy in policy_map else policy, linewidth = 1.75)[0]
 		plt.fill_between(
 			x_new,
 			policy_performances_discounted[policy] - policy_standard_errors_discounted[policy],
@@ -346,7 +347,7 @@ if __name__ == '__main__':
 		)
 
 	plt.xlabel('Fraction of population tested')
-	plt.ylabel(f'Normalized cumulative discounted reward')
-	plt.legend()
+	plt.ylabel(f'Normalized discounted reward')
+	plt.legend(loc = 'lower right', bbox_to_anchor=(1.023, -0.023), borderpad = 0.2, handlelength = 1.0)
 	plt.tight_layout()
 	plt.show()
