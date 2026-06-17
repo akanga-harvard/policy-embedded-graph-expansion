@@ -217,14 +217,21 @@ if __name__ == '__main__':
 	gamma = 0.99
 	aggregation = 'mean'
 
-	if experiment == 2:
+	if experiment == 4:
+		aggregations = ['mode', 'mean', 'mean+var', 'mean-var']
+		policies = [f'PEGE + DDB (Ours) agg = {aggregations[agg_index]}' for agg_index in range(len(aggregations))]
+		policies.append('Fully Observable Gittins')
+	elif experiment == 3:
+		ks = [1, 12, 24, 36]
+		policies = [f'PEGE + DDB (Ours) k = {ks[k_index]}' for k_index in range(len(ks))]
+		policies.append('Fully Observable Gittins')
+	elif experiment == 2:
 		policies = ['Naive Gittins', 'PEGE + DDB (Full Theta)', 'PEGE + DDB (Ours)', 'Fully Observable Gittins']
 	else:
 		policies = ['Random', 'Greedy Neighbor', 'Greedy Classifier', 'DQN', 'PEGE + DDB (Ours)', 'Fully Observable Gittins']
 
 	# Track performance
 	all_results = []
-
 	# Run experiments
 	for s in range(0, num_splits):
 		print(f'Split {s}')
@@ -249,7 +256,12 @@ if __name__ == '__main__':
 			performance[policy] = [0]
 
 			# Initialize agent
-			agent = algorithms.Agent(policy = policy, env = simulator, k = k, d = d, aggregation = aggregation)
+			if experiment == 4:
+				agent = algorithms.Agent(policy = policy, env = simulator, k = k, d = d, aggregation = aggregations[i] if i < len(aggregations) else 'mean')
+			elif experiment == 3:
+				agent = algorithms.Agent(policy = policy, env = simulator, k = ks[i] if i < len(ks) else 24, d = d, aggregation = aggregation)
+			else:
+				agent = algorithms.Agent(policy = policy, env = simulator, k = k, d = d, aggregation = aggregation)
 
 			# Step through simulation until complete
 			while not simulator.simulation_complete():
@@ -260,8 +272,9 @@ if __name__ == '__main__':
 			all_results.append(performance[policy])
 			print(f'Total discounted reward: {simulator.discounted_reward}')
 	
-	# Save results
 	file_path = f"results/results{experiment}.pkl"
+
+	# Save results
 	with open(file_path, "wb") as file:
 		pickle.dump(all_results, file)
 
@@ -322,10 +335,20 @@ if __name__ == '__main__':
 			policy_performances_undiscounted[policies[p]].append(f_undiscounted(x_new))
 
 	mpl.rcParams['font.size'] = 27.5
-	policy_map = {'Random': 'R', 'Greedy Classifier': 'GC', 'Greedy Neighbor': 'GN', 'Fully Observable Gittins': 'FOG', 'PEGE + DDB (Ours)': 'PEGE+DDB', 'PEGE + DDB (Full Theta)': 'PEGE+DDB\n(Full Theta)'}
+	def policy_map(policy_str):
+		policy_dict = {'Random': 'R', 'Greedy Classifier': 'GC', 'Greedy Neighbor': 'GN', 'Fully Observable Gittins': 'FOG', 'PEGE + DDB (Ours)': 'PEGE+DDB', 'PEGE + DDB (Full Theta)': 'PEGE+DDB\n(Full Theta)'}
+		if policy_str in policy_dict:
+			return policy_dict[policy_str]
+		elif 'PEGE + DDB (Ours) agg' in policy_str and len(policy_str) > 17:
+			return policy_str[policy_str.index('=') + 2:]
+		elif 'PEGE + DDB (Ours) k' in policy_str and len(policy_str) > 17:
+			return policy_str[18:]
+		return policy_str
+	
 
 	# Plot weighted algorithm means with split-level standard errors
-	for policy in policies:
+	for p in range(len(policies)):
+		policy = policies[p]
 		split_curves_discounted = np.array(policy_performances_discounted[policy])
 		split_curves_undiscounted = np.array(policy_performances_undiscounted[policy])
 		policy_performances_discounted[policy] = np.average(split_curves_discounted, weights = agg_weights, axis = 0)
@@ -336,7 +359,7 @@ if __name__ == '__main__':
 		for budget_fraction in [0.10, 0.25, 0.50, 0.75]:
 			budget_idx = int(round(budget_fraction * (len(x_new) - 1)))
 			print(f'{int(100*budget_fraction)} percent budget: {policy_performances_discounted[policy][budget_idx]} discounted, {policy_performances_undiscounted[policy][budget_idx]} undiscounted')
-		line = plt.plot(x_new, policy_performances_discounted[policy], label = policy_map[policy] if policy in policy_map else policy, linewidth = 1.75)[0]
+		line = plt.plot(x_new, policy_performances_discounted[policy], label = policy_map(policy), linewidth = 1.75)[0]
 		plt.fill_between(
 			x_new,
 			policy_performances_discounted[policy] - policy_standard_errors_discounted[policy],
@@ -348,6 +371,16 @@ if __name__ == '__main__':
 
 	plt.xlabel('Fraction of population tested')
 	plt.ylabel(f'Normalized discounted reward')
-	plt.legend(loc = 'lower right', bbox_to_anchor=(1.023, -0.023), borderpad = 0.2, handlelength = 1.0)
+	if experiment in [3, 4]:
+		ax = plt.gca()
+		handles, labels = ax.get_legend_handles_labels()
+		legend = plt.gcf().legend(handles, labels, loc = 'lower center', bbox_to_anchor=(0.5, 0.02), borderpad = 0.2, handlelength = 1.0, ncol = 3)
+		legend.set_in_layout(False)
+	else:
+		plt.legend(loc = 'lower right', bbox_to_anchor=(1.023, -0.023), borderpad = 0.2, handlelength = 1.0)
 	plt.tight_layout()
+	if experiment in [3, 4]:
+		plt.subplots_adjust(bottom = 0.30)
+		axes_center_x = ax.get_position().x0 + ax.get_position().width / 2
+		legend.set_bbox_to_anchor((axes_center_x, 0.02), transform = plt.gcf().transFigure)
 	plt.show()

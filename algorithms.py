@@ -34,11 +34,18 @@ class Agent:
 	def __init__(self, policy: str, env, k=-1, d = -1, aggregation='mean') -> None:
 		self.policy = policy
 		
-		# self.k, self.d, self.aggregation are only used in PEGE + DDB (Ours)
+		# self.k, self.d, self.aggregation are only used in PEGE + DDB
 		self.k = k
 		self.d = d
 		self.aggregation = aggregation
-		if self.policy in ['Greedy Classifier', 'DQN', 'PEGE + DDB (Ours)', 'PEGE + DDB (Full Theta)']:
+		if 'PEGE + DDB' in self.policy:
+			if self.k < 1:
+				raise ValueError('PEGE + DDB requires k >= 1')
+			if self.d < 0:
+				raise ValueError('PEGE + DDB requires d >= 0')
+			if self.aggregation not in {'mode', 'mean', 'mean+var', 'mean-var'}:
+				raise ValueError(f'Unknown PEGE + DDB aggregation mode: {self.aggregation}')
+		if 'PEGE + DDB (Ours)' in self.policy or self.policy in ['Greedy Classifier', 'DQN', 'PEGE + DDB (Full Theta)']:
 			self.train_models(env)
 
 	def get_action(self, env) -> int:
@@ -51,7 +58,7 @@ class Agent:
 			return self.greedy_classifier(env)
 		elif self.policy == 'DQN':
 			return self.dqn_action(env)
-		elif self.policy == 'PEGE + DDB (Ours)':
+		elif 'PEGE + DDB (Ours)' in self.policy:
 			return self.pege(env, mode = 'pege')
 		elif self.policy == 'PEGE + DDB (Full Theta)':
 			return self.pege(env, mode = 'pege')
@@ -71,7 +78,7 @@ class Agent:
 			self.clf.fit(X, y)
 
 		# Number of branches/child nodes predictor
-		if self.policy == 'PEGE + DDB (Ours)' or self.policy == 'PEGE + DDB (Full Theta)':
+		if 'PEGE + DDB (Ours)' in self.policy or self.policy == 'PEGE + DDB (Full Theta)':
 			kernel = ConstantKernel(1.0, (1e-3, 1e3)) * RBF(length_scale=0.1, length_scale_bounds=(1e-2, 1e3)) + WhiteKernel(noise_level=1, noise_level_bounds=(1e-6, 0.1))
 			self.branch_regression = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, random_state = 314)
 			X = np.array([list(env.true_covariates[node]) for node in list(env.train_G.nodes())])
@@ -258,7 +265,7 @@ class Agent:
 			winners_keys = [keys[i] for i in winners_row_idx]
 			if len(env.incremental_statuses) % 10 == 0:
 				print(f'returned an action ({len(env.incremental_statuses)}/{env.test_G.number_of_nodes()} nodes tested)')
-			return scipy.stats.mode(winners_keys).mode
+			return scipy.stats.mode(winners_keys).mode.item()
 
 		for k, v in all_gittins_indeces.items():
 			if self.aggregation == 'mean':
@@ -299,5 +306,4 @@ class Agent:
 		
 
 	
-
 
