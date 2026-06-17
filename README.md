@@ -1,6 +1,6 @@
 arxiv link: https://arxiv.org/abs/2601.16233
 
-The ICPSR dataset is publicly available and can be downloaded at doi.org/10.3886/ICPSR22140.v1. See citation below. Move all three tsv data files into data folder.
+The ICPSR dataset is publicly available and can be downloaded at doi.org/10.3886/ICPSR22140.v1. See citation below. Move all three tsv data files into a new folder called data.
 
 To run main experiment, set experiment = 1 in the main function of simulator.py. To run the ablation study, set experiment = 2. To run the arxiv paper ablation studies, set experiment = 3 or experiment = 4. Then, run simulator.py.
 
